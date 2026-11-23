@@ -1,10 +1,10 @@
-/* ============ Nokia 3310 photo + live LCD ============ */
+/* ============ Phone photo + live LCD ============ */
 
 .stage {
-  --poster: #c64f8f;
-  --ink: #1d2119;
-  --lcd: #b4b8a4;
-  --soft-ink: #1d2119;
+  --poster: #bc4b85; /* sampled from the reference photo's backdrop */
+  --ink: #1f1d1c;
+  --lcd: #c9c5c1;
+  --soft-ink: #1f1d1c;
 
   position: relative;
   width: min(100vw, 100dvh);
@@ -15,27 +15,16 @@
   isolation: isolate;
 }
 
-/* film grain over everything, like the reference prints */
-.stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  pointer-events: none;
-  opacity: 0.28;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 /* ---------- handset (static photo) ----------
    Everything inside .handset is positioned in % of the photo, so the
-   LCD and key hotspots stay locked to it at any size. */
+   LCD stays locked to the glass at any size. */
 
 .handset {
+  /* photo is 4:5; full square height, bottom-anchored so the phone runs off-frame */
   position: absolute;
   left: 50%;
-  top: -4cqw;
-  width: 70cqw;
+  bottom: 0;
+  width: 80cqw;
   translate: -50% 0;
   aspect-ratio: var(--img-ratio);
 }
@@ -47,23 +36,6 @@
   height: 100%;
   pointer-events: none;
   user-select: none;
-  filter: drop-shadow(1.2cqw 1.4cqw 0 rgb(40 10 28 / 0.3));
-}
-
-/* invisible hit areas over the photo's physical keys */
-.hotspot {
-  position: absolute;
-  cursor: pointer;
-  border-radius: 40%;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.hotspot-navi {
-  border-radius: 50%;
-}
-
-.hotspot:active {
-  background: rgb(0 0 0 / 0.16);
 }
 
 /* ---------- LCD ---------- */
@@ -73,20 +45,36 @@
   --primary: var(--ink);
   --primary-foreground: var(--lcd);
   --ring: var(--ink);
+  /* 8bitcn components read these shadcn tokens */
+  --background: var(--lcd);
+  --card: var(--lcd);
+  --card-foreground: var(--ink);
+  --muted: rgb(31 29 28 / 0.1);
+  --muted-foreground: var(--ink);
+  --accent: transparent;
+  --accent-foreground: var(--ink);
+  /* Tailwind v4 sizes utilities as calc(var(--spacing) * n); re-basing it in cqw
+     makes every 8bitcn pixel border inside the LCD scale with the phone */
+  --spacing: 0.44cqw;
 
   position: absolute;
   display: flex;
   flex-direction: column;
-  padding: 0.6cqw 1.2cqw 0.3cqw;
+  /* extra left/right room: the glass narrows toward the top */
+  padding: 0.9cqw 1.8cqw 0.5cqw 2.2cqw;
   overflow: hidden;
   color: var(--ink);
-  border-radius: 0.6cqw 0.6cqw 1.4cqw 1.4cqw;
+  border-radius: 0.4cqw;
   background-color: var(--lcd);
   /* faint LCD pixel grid */
   background-image:
     repeating-linear-gradient(0deg, rgb(0 0 0 / 0.04) 0 1px, transparent 1px 3px),
     repeating-linear-gradient(90deg, rgb(0 0 0 / 0.04) 0 1px, transparent 1px 3px);
-  box-shadow: inset 0.4cqw 0.4cqw 0 rgb(0 0 0 / 0.16);
+  /* soft recess so the UI sits under the bezel, not on top of the photo */
+  box-shadow:
+    inset 0 0.7cqw 0.9cqw -0.3cqw rgb(31 29 28 / 0.38),
+    inset 0.6cqw 0 0.8cqw -0.4cqw rgb(31 29 28 / 0.22),
+    inset -0.6cqw 0 0.8cqw -0.4cqw rgb(31 29 28 / 0.18);
 }
 
 .lcd-status {
@@ -94,13 +82,62 @@
   align-items: center;
   justify-content: space-between;
   gap: 1cqw;
-  height: 3.2cqw;
+  height: 3.8cqw;
   flex-shrink: 0;
 }
 
-.lcd-status-rule {
-  border-bottom: 0.25cqw solid var(--ink);
-  margin-bottom: 0.3cqw;
+/* 8bitcn Separator: dashed pixel rule, re-sized for the LCD */
+.lcd [data-slot="separator-root"] {
+  background-size: 1.6cqw 100%;
+}
+
+.lcd-sep {
+  height: 0.3cqw !important;
+  margin-bottom: 0.4cqw;
+}
+
+/* 8bitcn Progress as the battery gauge */
+.lcd-battery {
+  width: 5.2cqw !important;
+  margin-right: 0.5cqw;
+}
+
+.lcd-battery [data-slot="progress"] {
+  height: 1.2cqw;
+  background: transparent;
+}
+
+.lcd-battery [data-slot="progress-indicator"] > div > div {
+  margin: 0 0.06cqw;
+}
+
+.lcd-battery > div[aria-hidden] {
+  border-width: 0;
+  margin: 0;
+}
+
+.lcd-battery > div[aria-hidden]:nth-of-type(2) {
+  border-top-width: 0.22cqw;
+  border-bottom-width: 0.22cqw;
+  margin: -0.22cqw 0;
+}
+
+.lcd-battery > div[aria-hidden]:nth-of-type(3) {
+  border-left-width: 0.22cqw;
+  border-right-width: 0.22cqw;
+  margin: 0 -0.22cqw;
+}
+
+/* battery nub */
+.lcd-battery::after {
+  content: "";
+  position: absolute;
+  right: -0.62cqw;
+  top: 50%;
+  translate: 0 -50%;
+  width: 0.3cqw;
+  height: 0.6cqw;
+  background: var(--ink);
 }
 
 .lcd-status-left,
@@ -111,12 +148,12 @@
 }
 
 .lcd-status-icon {
-  height: 1.3cqw;
+  height: 1.5cqw;
 }
 
 .lcd-clock {
   font-family: var(--font-silkscreen), monospace;
-  font-size: 1.5cqw;
+  font-size: 1.7cqw;
   letter-spacing: 0.05em;
 }
 
@@ -130,16 +167,13 @@
   padding: 0.1cqw 1.6cqw 0.4cqw 0;
   font-family: var(--font-dot), monospace;
   font-weight: 900;
-  font-size: 2.4cqw;
+  font-size: 2.9cqw;
   white-space: nowrap;
 }
 
-.lcd-title::before,
-.lcd-title::after {
-  content: "";
-  width: 2.4cqw;
-  height: 0.3cqw;
-  background: var(--ink);
+.lcd-title-dash {
+  width: 2.4cqw !important;
+  height: 0.35cqw !important;
 }
 
 /* dot-matrix look (font reference): heavy tight type seen through a
@@ -148,8 +182,7 @@
 .lcd-text,
 .lcd-headline,
 .lcd-popup-text,
-.lcd-row,
-.lcd-note {
+.lcd-row {
   letter-spacing: -0.015em;
 }
 
@@ -157,8 +190,8 @@
 .lcd-headline,
 .lcd-popup-text,
 .lcd-row-label,
-.lcd-note > span,
-.lcd-title {
+.lcd-alert-title,
+.lcd-title-text {
   --dot: 0.38cqw;
   -webkit-mask-image: radial-gradient(circle, #000 60%, transparent 66%);
   mask-image: radial-gradient(circle, #000 60%, transparent 66%);
@@ -211,7 +244,7 @@
 .lcd-text {
   font-family: var(--font-dot), monospace;
   font-weight: 900;
-  font-size: 3.5cqw;
+  font-size: 4.2cqw;
   line-height: 1.04;
   overflow-wrap: break-word;
 }
@@ -219,7 +252,7 @@
 .lcd-author {
   margin-top: 1.4cqw;
   font-family: var(--font-silkscreen), monospace;
-  font-size: 1.4cqw;
+  font-size: 1.6cqw;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -229,7 +262,7 @@
   flex-direction: column;
   gap: 1.4cqw;
   height: 100%;
-  padding: 3cqw 2.2cqw 0 1cqw;
+  padding: 4.5cqw 2.2cqw 0 0.6cqw;
 }
 
 .lcd-center {
@@ -246,39 +279,68 @@
 .lcd-headline {
   font-family: var(--font-dot), monospace;
   font-weight: 900;
-  font-size: 5cqw;
+  font-size: 6cqw;
   line-height: 0.98;
 }
 
-.lcd-small {
+/* 8bitcn Badge: inverted pixel chip (genre on home, Saved count) */
+.lcd-badge {
+  align-self: flex-start;
+  margin-left: 0.66cqw; /* room for the left pixel bar */
+}
+
+.lcd-badge [data-slot="badge"] {
+  padding: 0.25cqw 0.6cqw;
+  border: 0;
   font-family: var(--font-silkscreen), monospace;
-  font-size: 1.4cqw;
+  font-size: 1.6cqw;
+  font-weight: 400;
   letter-spacing: 0.05em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
-/* boxed "You have a message" popup */
-.lcd-popup {
+.lcd-badge-count {
+  align-self: center;
+  margin-right: 0.9cqw;
+}
+
+/* 8bitcn Card: pixel-framed "You have a message" box */
+.lcd-card:not([data-slot="card"]) {
+  width: calc(100% - 1.2cqw);
+  border-top-width: 0.5cqw;
+  border-bottom-width: 0.5cqw;
+}
+
+.lcd-card > div[aria-hidden] {
+  border-left-width: 0.5cqw;
+  border-right-width: 0.5cqw;
+  margin: 0 -0.5cqw;
+}
+
+.lcd-card[data-slot="card"] {
+  padding: 0;
+  gap: 0;
+  border: 0;
+}
+
+.lcd-card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.2cqw;
-  width: 100%;
-  padding: 1.8cqw 1.6cqw;
-  border: 0.35cqw solid var(--ink);
-  box-shadow: 0.5cqw 0.5cqw 0 var(--ink);
-  background: var(--lcd);
+  padding: 2.4cqw 1.6cqw;
 }
 
 .lcd-popup-text {
   font-family: var(--font-dot), monospace;
   font-weight: 900;
-  font-size: 3.6cqw;
+  font-size: 4.2cqw;
   line-height: 1;
 }
 
 .lcd-envelope {
-  height: 3.6cqw;
+  height: 4.2cqw;
   animation: lcd-blink 1s steps(1, end) infinite;
 }
 
@@ -297,10 +359,10 @@
   gap: 1.2cqw;
   width: 100%;
   padding: 0.35cqw 0.8cqw;
-  min-height: 3.6cqw;
+  min-height: 4.4cqw;
   font-family: var(--font-dot), monospace;
   font-weight: 900;
-  font-size: 2.8cqw;
+  font-size: 3.3cqw;
   line-height: 1;
   color: var(--ink);
   cursor: pointer;
@@ -339,8 +401,30 @@
 
 /* 8bitcn radio, sized to the LCD */
 div.lcd-radio {
+  /* the radio mixes spacing units with fixed px offsets, so keep it on the
+     default spacing scale (re-basing would distort it at small sizes) */
+  --spacing: 0.25rem;
   flex-shrink: 0;
-  scale: 0.7;
+  /* zoom (not scale) so the row's layout shrinks with it; stepped by stage size */
+  zoom: 0.7;
+}
+
+@container (max-width: 720px) {
+  div.lcd-radio {
+    zoom: 0.55;
+  }
+}
+
+@container (max-width: 540px) {
+  div.lcd-radio {
+    zoom: 0.42;
+  }
+}
+
+@container (max-width: 420px) {
+  div.lcd-radio {
+    zoom: 0.34;
+  }
 }
 
 button.lcd-radio {
@@ -359,18 +443,29 @@ button.lcd-radio[data-state="checked"] {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: end;
-  height: 4.2cqw;
+  height: 5cqw;
   flex-shrink: 0;
   font-family: var(--font-jersey), sans-serif;
-  font-size: 3.8cqw;
+  font-size: 4.5cqw;
   line-height: 1;
   color: var(--soft-ink);
 }
 
+/* 8bitcn Button (ghost) as Nokia soft-key labels */
 .lcd-softkey {
+  height: auto;
   padding: 0 0.3cqw;
+  gap: 0.6cqw;
+  border-radius: 0;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.lcd-softkey:hover {
+  background: transparent;
+  color: inherit;
 }
 
 .lcd-softkey-left {
@@ -390,26 +485,65 @@ button.lcd-radio[data-state="checked"] {
 
 /* ---------- note popup ---------- */
 
+/* 8bitcn Alert: Saved / Copied / Genre set confirmations */
 .lcd-note {
   position: absolute;
-  inset: 10% 8% 10% 3%;
+  inset: 0 2cqw 0 0;
   z-index: 2;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.2cqw;
-  background: var(--lcd);
-  border: 0.4cqw solid var(--ink);
-  box-shadow: 0.5cqw 0.5cqw 0 var(--ink);
-  font-family: var(--font-dot), monospace;
-  font-weight: 900;
-  font-size: 3cqw;
   animation: lcd-pop 160ms steps(3, end);
 }
 
-.lcd-note-icon {
+.lcd-note > div {
+  width: 84%;
+}
+
+.lcd-alert[data-slot="alert"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2cqw;
+  padding: 3cqw 1.6cqw;
+  background: var(--lcd);
+  color: var(--ink);
+}
+
+.lcd-alert > svg.lcd-note-icon {
+  width: auto;
   height: 3.6cqw;
+  translate: none;
+}
+
+.lcd-alert-title {
+  min-height: 0;
+  font-family: var(--font-dot), monospace;
+  font-weight: 900;
+  font-size: 3.6cqw;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+/* 8bitcn Empty: no saved messages */
+.lcd-empty {
+  height: 100%;
+  gap: 0;
+  padding: 0 2.2cqw 0 0;
+  border: 0;
+}
+
+.lcd-empty-header {
+  gap: 2cqw;
+}
+
+.lcd-empty-media {
+  margin-inline: 0.66cqw;
+}
+
+.lcd-empty-icon {
+  height: 2.2cqw;
+  width: auto;
 }
 
 /* focus rings stay chunky and square */

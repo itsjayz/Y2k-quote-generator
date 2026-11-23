@@ -3,8 +3,15 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 
+import { Alert, AlertTitle } from "@/components/ui/8bit/alert";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Button } from "@/components/ui/8bit/button";
+import { Card, CardContent } from "@/components/ui/8bit/card";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/8bit/empty";
+import { Progress } from "@/components/ui/8bit/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/8bit/radio-group";
 import { ScrollArea } from "@/components/ui/8bit/scroll-area";
+import { Separator } from "@/components/ui/8bit/separator";
 import {
   GENRES,
   QUOTE_BY_ID,
@@ -23,22 +30,26 @@ import "./phone.css";
 /* ------------------------------------------------------------------
    Handset photo + where things sit on it.
    To swap the image: drop a new file in /public/phone, update `src`,
-   `width`/`height`, then re-measure each rect in the photo's own pixels.
-   Current photo: "Nokia 3310 blue.jpg", Wikimedia Commons, public domain
-   (background removed).
+   `width`/`height`, then re-measure the LCD in the photo's own pixels.
+   Current photo: references/mockup.jpg, background cut out
+   (public/phone/phone-mockup.png).
 ------------------------------------------------------------------- */
 const HANDSET = {
-  src: "/phone/nokia-3310.png",
-  width: 1283,
-  height: 3037,
-  lcd: { x: 190, y: 822, w: 900, h: 618 },
-  keys: {
-    navi: { x: 380, y: 1595, w: 520, h: 130 }, // big centre key -> centre action
-    clear: { x: 183, y: 1658, w: 236, h: 130 }, // "C" key -> back / exit
-    up: { x: 944, y: 1646, w: 136, h: 124 }, // rocker, upper end
-    down: { x: 708, y: 1735, w: 236, h: 147 }, // rocker, lower end
-  },
+  src: "/phone/phone-mockup.png",
+  width: 736,
+  height: 920,
+  // bounding box of the LCD glass; the glass is a slight trapezoid
+  lcd: { x: 142, y: 368, w: 459, h: 446 },
+  // top edge of the glass runs x 157 -> 593 (bottom edge is the full box width)
+  lcdTop: { left: 157, right: 593 },
 };
+
+const lcdClip = (() => {
+  const { x, w } = HANDSET.lcd;
+  const l = ((HANDSET.lcdTop.left - x) / w) * 100;
+  const r = ((HANDSET.lcdTop.right - x) / w) * 100;
+  return `polygon(${l}% 0, ${r}% 0, 100% 100%, 0 100%)`;
+})();
 
 type Rect = { x: number; y: number; w: number; h: number };
 const pct = ({ x, y, w, h }: Rect) => ({
@@ -221,7 +232,9 @@ export function NokiaPhone() {
             <br />
             for you
           </p>
-          <p className="lcd-small">{genre ? genreLabel(genre) : "Any genre"}</p>
+          <Badge font="normal" className="lcd-badge">
+            {genre ? genreLabel(genre) : "Any genre"}
+          </Badge>
         </div>
       );
       break;
@@ -234,13 +247,15 @@ export function NokiaPhone() {
       };
       body = (
         <div className="lcd-center">
-          <div className="lcd-popup">
-            <PixelIcon name="envelope" className="lcd-envelope" />
-            <p className="lcd-popup-text">
-              You have a<br />
-              message
-            </p>
-          </div>
+          <Card font="normal" className="lcd-card">
+            <CardContent font="normal" className="lcd-card-content">
+              <PixelIcon name="envelope" className="lcd-envelope" />
+              <p className="lcd-popup-text">
+                You have a<br />
+                message
+              </p>
+            </CardContent>
+          </Card>
         </div>
       );
       break;
@@ -321,9 +336,16 @@ export function NokiaPhone() {
               })),
               {
                 key: "saved",
-                label: `Saved (${savedQuotes.length})`,
+                label: "Saved",
                 lead: <PixelIcon name="envelope" className="lcd-row-icon" />,
-                trail: <PixelIcon name="arrow" className="lcd-row-arrow" />,
+                trail: (
+                  <>
+                    <Badge font="normal" className="lcd-badge lcd-badge-count">
+                      {savedQuotes.length}
+                    </Badge>
+                    <PixelIcon name="arrow" className="lcd-row-arrow" />
+                  </>
+                ),
               },
             ]}
             focus={focus}
@@ -354,9 +376,14 @@ export function NokiaPhone() {
           onPick={openSaved}
         />
       ) : (
-        <div className="lcd-center">
-          <p className="lcd-popup-text">No saved messages</p>
-        </div>
+        <Empty font="normal" className="lcd-empty">
+          <EmptyHeader className="lcd-empty-header">
+            <EmptyMedia variant="icon" className="lcd-empty-media">
+              <PixelIcon name="envelope" className="lcd-empty-icon" />
+            </EmptyMedia>
+            <EmptyTitle className="lcd-popup-text">No saved messages</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       );
       break;
     }
@@ -444,31 +471,45 @@ export function NokiaPhone() {
           src={HANDSET.src}
           width={HANDSET.width}
           height={HANDSET.height}
-          alt="Nokia 3310 mobile phone"
+          alt="Vintage Nokia mobile phone"
           className="handset-img"
-          sizes="70vmin"
+          sizes="80vmin"
           priority
           draggable={false}
         />
 
         <div
           className="lcd"
-          style={pct(HANDSET.lcd)}
+          style={{ ...pct(HANDSET.lcd), clipPath: lcdClip }}
           role="application"
           aria-label="Phone screen"
         >
-          <div className={cn("lcd-status", rule && "lcd-status-rule")}>
+          <div className="lcd-status">
             <span className="lcd-status-left">
               <PixelIcon name="signal" className="lcd-status-icon" />
               {hasMessage && <PixelIcon name="envelope" className="lcd-status-icon" />}
             </span>
             <span className="lcd-status-right">
               <span className="lcd-clock">{clock}</span>
-              <PixelIcon name="battery" className="lcd-status-icon" />
+              {/* battery: 8bitcn segmented progress bar */}
+              <Progress
+                variant="retro"
+                font="normal"
+                value={75}
+                aria-label="Battery 75%"
+                className="lcd-battery"
+              />
             </span>
           </div>
+          {rule && <Separator className="lcd-sep" />}
 
-          {heading && <div className="lcd-title">{heading}</div>}
+          {heading && (
+            <div className="lcd-title">
+              <Separator className="lcd-title-dash" />
+              <span className="lcd-title-text">{heading}</span>
+              <Separator className="lcd-title-dash" />
+            </div>
+          )}
 
           <div id={bodyId} className="lcd-body" aria-live="polite">
             <div key={screen} className="lcd-screen">
@@ -477,8 +518,10 @@ export function NokiaPhone() {
 
             {note && (
               <div className="lcd-note" role="status">
-                <PixelIcon name={note.icon} className="lcd-note-icon" />
-                <span>{note.text}</span>
+                <Alert font="normal" className="lcd-alert">
+                  <PixelIcon name={note.icon} className="lcd-note-icon" />
+                  <AlertTitle className="lcd-alert-title">{note.text}</AlertTitle>
+                </Alert>
               </div>
             )}
           </div>
@@ -489,36 +532,6 @@ export function NokiaPhone() {
             <SoftLabel align="right" k={keys.right} press={press} />
           </div>
         </div>
-
-        {/* invisible hit areas over the photo's own keys */}
-        <button
-          type="button"
-          className="hotspot hotspot-navi"
-          style={pct(HANDSET.keys.navi)}
-          aria-label="Select"
-          onClick={press(centerAction)}
-        />
-        <button
-          type="button"
-          className="hotspot"
-          style={pct(HANDSET.keys.clear)}
-          aria-label="Back"
-          onClick={press(backAction)}
-        />
-        <button
-          type="button"
-          className="hotspot"
-          style={pct(HANDSET.keys.up)}
-          aria-label="Scroll up"
-          onClick={press(keys.up)}
-        />
-        <button
-          type="button"
-          className="hotspot"
-          style={pct(HANDSET.keys.down)}
-          aria-label="Scroll down"
-          onClick={press(keys.down)}
-        />
       </div>
     </div>
   );
@@ -535,13 +548,15 @@ function SoftLabel({
 }) {
   if (!k) return <span />;
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      font="normal"
       className={cn("lcd-softkey", `lcd-softkey-${align}`)}
       onClick={press(k.action)}
     >
       {k.label}
-    </button>
+    </Button>
   );
 }
 

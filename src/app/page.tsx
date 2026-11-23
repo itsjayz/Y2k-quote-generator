@@ -2,7 +2,7 @@
 
 export default function Home() {
   return (
-    <main className="grid min-h-dvh place-items-center overflow-hidden bg-[#171812]">
+    <main className="grid min-h-dvh place-items-center overflow-hidden bg-[#bc4b85]">
       <NokiaPhone />
     </main>
   );
