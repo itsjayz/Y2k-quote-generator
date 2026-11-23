@@ -292,7 +292,7 @@ export function NokiaPhone() {
             <br />
             for you
           </p>
-          <Badge font="normal" className="lcd-badge">
+          <Badge className="lcd-badge">
             {genre ? genreLabel(genre) : "Any genre"}
           </Badge>
         </div>
@@ -307,8 +307,8 @@ export function NokiaPhone() {
       };
       body = (
         <div className="lcd-center">
-          <Card font="normal" className="lcd-card">
-            <CardContent font="normal" className="lcd-card-content">
+          <Card className="lcd-card">
+            <CardContent className="lcd-card-content">
               <PixelIcon name="envelope" className="lcd-envelope" />
               <p className="lcd-popup-text">
                 You have a<br />
@@ -400,7 +400,7 @@ export function NokiaPhone() {
                 lead: <PixelIcon name="envelope" className="lcd-row-icon" />,
                 trail: (
                   <>
-                    <Badge font="normal" className="lcd-badge lcd-badge-count">
+                    <Badge className="lcd-badge lcd-badge-count">
                       {savedQuotes.length}
                     </Badge>
                     <PixelIcon name="arrow" className="lcd-row-arrow" />
@@ -436,7 +436,7 @@ export function NokiaPhone() {
           onPick={openSaved}
         />
       ) : (
-        <Empty font="normal" className="lcd-empty">
+        <Empty className="lcd-empty">
           <EmptyHeader className="lcd-empty-header">
             <EmptyMedia variant="icon" className="lcd-empty-media">
               <PixelIcon name="envelope" className="lcd-empty-icon" />
@@ -566,7 +566,6 @@ export function NokiaPhone() {
               {/* battery: 8bitcn segmented progress bar */}
               <Progress
                 variant="retro"
-                font="normal"
                 value={75}
                 aria-label="Battery 75%"
                 className="lcd-battery"
@@ -590,7 +589,7 @@ export function NokiaPhone() {
 
             {note && (
               <div className="lcd-note" role="status">
-                <Alert font="normal" className="lcd-alert">
+                <Alert className="lcd-alert">
                   <PixelIcon name={note.icon} className="lcd-note-icon" />
                   <AlertTitle className="lcd-alert-title">{note.text}</AlertTitle>
                 </Alert>
@@ -645,7 +644,6 @@ function SoftLabel({
     <Button
       type="button"
       variant="ghost"
-      font="normal"
       className={cn("lcd-softkey", `lcd-softkey-${align}`)}
       onClick={press(k.action)}
     >
