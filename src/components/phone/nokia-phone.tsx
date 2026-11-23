@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
-import Image from "next/image";
+import { getImageProps } from "next/image";
 
 import { Alert, AlertTitle } from "@/components/ui/8bit/alert";
 import { Badge } from "@/components/ui/8bit/badge";
@@ -28,36 +28,96 @@ import { createStore, useClock, useStore } from "./use-store";
 import "./phone.css";
 
 /* ------------------------------------------------------------------
-   Handset photo + where things sit on it.
-   To swap the image: drop a new file in /public/phone, update `src`,
-   `width`/`height`, then re-measure the LCD in the photo's own pixels.
-   Current photo: references/mockup.jpg, background cut out
-   (public/phone/phone-mockup.png).
+   Handset photos + where things sit on them (all in each photo's pixels).
+   - DESKTOP: references/mockup.jpg cut out -> phone-mockup.png
+     (cropped below the screen; runs off the bottom of the square).
+   - MOBILE (tall, narrow viewports): the full handset ->
+     phone-full.png, sized to the viewport height, with tappable keys.
+   To swap a photo: replace the file, update width/height, re-measure.
+   MOBILE_MQ must match the @media query in phone.css.
 ------------------------------------------------------------------- */
-const HANDSET = {
+type Rect = { x: number; y: number; w: number; h: number };
+type Photo = {
+  src: string;
+  width: number;
+  height: number;
+  lcd: Rect; // bounding box of the LCD glass (a slight trapezoid)
+  lcdTop: { left: number; right: number }; // x-span of the glass's top edge
+};
+
+const HANDSET: Photo = {
   src: "/phone/phone-mockup.png",
   width: 736,
   height: 920,
-  // bounding box of the LCD glass; the glass is a slight trapezoid
   lcd: { x: 142, y: 368, w: 459, h: 446 },
-  // top edge of the glass runs x 157 -> 593 (bottom edge is the full box width)
   lcdTop: { left: 157, right: 593 },
 };
 
-const lcdClip = (() => {
-  const { x, w } = HANDSET.lcd;
-  const l = ((HANDSET.lcdTop.left - x) / w) * 100;
-  const r = ((HANDSET.lcdTop.right - x) / w) * 100;
+const HANDSET_FULL: Photo & { keys: Record<string, Rect> } = {
+  src: "/phone/phone-full.png",
+  width: 670,
+  height: 1385,
+  lcd: { x: 118, y: 284, w: 436, h: 412 },
+  lcdTop: { left: 126, right: 546 },
+  keys: {
+    left: { x: 95, y: 806, w: 124, h: 64 }, // left soft key  -> left label
+    right: { x: 453, y: 806, w: 128, h: 64 }, // right soft key -> right label
+    up: { x: 252, y: 810, w: 168, h: 78 }, // nav pad, upper half
+    down: { x: 252, y: 890, w: 168, h: 78 }, // nav pad, lower half
+    call: { x: 103, y: 890, w: 116, h: 70 }, // green key -> centre label
+    end: { x: 451, y: 890, w: 118, h: 70 }, // red key   -> exit / back
+  },
+};
+
+export const MOBILE_MQ = "(max-width: 820px) and (max-aspect-ratio: 4/5)";
+
+const clipFor = ({ lcd, lcdTop }: Photo) => {
+  const l = ((lcdTop.left - lcd.x) / lcd.w) * 100;
+  const r = ((lcdTop.right - lcd.x) / lcd.w) * 100;
   return `polygon(${l}% 0, ${r}% 0, 100% 100%, 0 100%)`;
+};
+
+const pctOf = (photo: Photo, { x, y, w, h }: Rect) => ({
+  left: `${(x / photo.width) * 100}%`,
+  top: `${(y / photo.height) * 100}%`,
+  width: `${(w / photo.width) * 100}%`,
+  height: `${(h / photo.height) * 100}%`,
+});
+
+// LCD placement for both photos as CSS variables; phone.css picks the set
+const lcdVars = (() => {
+  const d = pctOf(HANDSET, HANDSET.lcd);
+  const m = pctOf(HANDSET_FULL, HANDSET_FULL.lcd);
+  return {
+    "--lcd-l": d.left,
+    "--lcd-t": d.top,
+    "--lcd-w": d.width,
+    "--lcd-h": d.height,
+    "--lcd-clip": clipFor(HANDSET),
+    "--lcd-l-m": m.left,
+    "--lcd-t-m": m.top,
+    "--lcd-w-m": m.width,
+    "--lcd-h-m": m.height,
+    "--lcd-clip-m": clipFor(HANDSET_FULL),
+  } as CSSProperties;
 })();
 
-type Rect = { x: number; y: number; w: number; h: number };
-const pct = ({ x, y, w, h }: Rect) => ({
-  left: `${(x / HANDSET.width) * 100}%`,
-  top: `${(y / HANDSET.height) * 100}%`,
-  width: `${(w / HANDSET.width) * 100}%`,
-  height: `${(h / HANDSET.height) * 100}%`,
-});
+// art direction: the <img> is the desktop photo, <source> swaps in the full phone
+const IMG_ALT = "Vintage Nokia mobile phone";
+const desktopImg = getImageProps({
+  src: HANDSET.src,
+  width: HANDSET.width,
+  height: HANDSET.height,
+  alt: IMG_ALT,
+  sizes: "80vmin",
+}).props;
+const mobileImg = getImageProps({
+  src: HANDSET_FULL.src,
+  width: HANDSET_FULL.width,
+  height: HANDSET_FULL.height,
+  alt: IMG_ALT,
+  sizes: "100vw",
+}).props;
 
 const savedStore = createStore<string[]>("thought-phone:saved", []);
 const genreStore = createStore<GenreId | null>("thought-phone:genre", null);
@@ -465,22 +525,34 @@ export function NokiaPhone() {
     <div className="stage">
       <div
         className="handset"
-        style={{ "--img-ratio": `${HANDSET.width} / ${HANDSET.height}` } as CSSProperties}
+        style={
+          {
+            "--img-ratio": `${HANDSET.width} / ${HANDSET.height}`,
+            "--img-ratio-m": `${HANDSET_FULL.width} / ${HANDSET_FULL.height}`,
+          } as CSSProperties
+        }
       >
-        <Image
-          src={HANDSET.src}
-          width={HANDSET.width}
-          height={HANDSET.height}
-          alt="Vintage Nokia mobile phone"
-          className="handset-img"
-          sizes="80vmin"
-          priority
-          draggable={false}
-        />
+        <picture>
+          <source
+            media={MOBILE_MQ}
+            srcSet={mobileImg.srcSet}
+            sizes={mobileImg.sizes}
+            width={HANDSET_FULL.width}
+            height={HANDSET_FULL.height}
+          />
+          <img
+            {...desktopImg}
+            alt={IMG_ALT}
+            className="handset-img"
+            loading="eager"
+            fetchPriority="high"
+            draggable={false}
+          />
+        </picture>
 
         <div
           className="lcd"
-          style={{ ...pct(HANDSET.lcd), clipPath: lcdClip }}
+          style={lcdVars}
           role="application"
           aria-label="Phone screen"
         >
@@ -532,6 +604,28 @@ export function NokiaPhone() {
             <SoftLabel align="right" k={keys.right} press={press} />
           </div>
         </div>
+
+        {/* mobile only (CSS): tap targets over the full photo's physical keys */}
+        {(
+          [
+            ["left", "Left soft key", keys.left?.action],
+            ["right", "Right soft key", keys.right?.action],
+            ["up", "Scroll up", keys.up],
+            ["down", "Scroll down", keys.down],
+            ["call", "Select", centerAction],
+            ["end", "Back", backAction],
+          ] as const
+        ).map(([id, label, action]) => (
+          <button
+            key={id}
+            type="button"
+            className="hotspot"
+            style={pctOf(HANDSET_FULL, HANDSET_FULL.keys[id])}
+            aria-label={label}
+            tabIndex={-1}
+            onClick={press(action)}
+          />
+        ))}
       </div>
     </div>
   );

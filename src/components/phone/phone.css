@@ -58,6 +58,12 @@
   --spacing: 0.44cqw;
 
   position: absolute;
+  /* placement on the photo, set per photo from the component */
+  left: var(--lcd-l);
+  top: var(--lcd-t);
+  width: var(--lcd-w);
+  height: var(--lcd-h);
+  clip-path: var(--lcd-clip);
   display: flex;
   flex-direction: column;
   /* extra left/right room: the glass narrows toward the top */
@@ -568,5 +574,64 @@ button.lcd-radio[data-state="checked"] {
   .lcd-envelope,
   .lcd-note {
     animation: none;
+  }
+}
+
+/* ---------- physical-key tap targets (mobile only) ---------- */
+
+.hotspot {
+  display: none;
+  position: absolute;
+  border-radius: 30%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hotspot:active {
+  background: rgb(0 0 0 / 0.18);
+}
+
+/* ============ Mobile: full handset, sized from the viewport ============
+   Tall, narrow viewports only, so desktop/laptop is untouched.
+   Keep this query in sync with MOBILE_MQ in nokia-phone.tsx.
+
+   The LCD's type and spacing are written in cqw of .stage. Here .stage is
+   sized so the full photo's LCD comes out exactly as many cqw wide as on
+   desktop (49.89cqw), so the UI scales 1:1 with the larger phone:
+     stage width = phone width x (436/670) / 0.4989 = phone width x 1.3043 */
+@media (max-width: 820px) and (max-aspect-ratio: 4/5) {
+  .stage {
+    /* phone width: fill ~92% of the height, but keep 16px side margins */
+    --pw: min(calc(100vw - 32px), calc(92dvh * 670 / 1385));
+
+    position: fixed;
+    left: 50%;
+    top: 0;
+    translate: -50% 0;
+    width: calc(var(--pw) * 1.3043);
+    height: 100dvh;
+    aspect-ratio: auto;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .handset {
+    top: 50%;
+    bottom: auto;
+    width: var(--pw);
+    translate: -50% -50%;
+    aspect-ratio: var(--img-ratio-m);
+  }
+
+  .lcd {
+    left: var(--lcd-l-m);
+    top: var(--lcd-t-m);
+    width: var(--lcd-w-m);
+    height: var(--lcd-h-m);
+    clip-path: var(--lcd-clip-m);
+  }
+
+  .hotspot {
+    display: block;
   }
 }
